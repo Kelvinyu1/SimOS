@@ -1,15 +1,24 @@
 #ifndef SIM_OS
 #define SIM_OS
 
+#include <algorithm>
+#include <optional>
 #include <queue>
 #include <vector>
+#include <unordered_map>
 #include <iostream>
 #include <string>
 
+enum class ProcessState { READY, RUNNING, WAITING, ZOMBIE, TERMINATED};
+
+
 struct Process {
-  unsigned long long itemSize;
-  int priorty;
+  int priority;
   int PID;
+  int parentPID;
+  unsigned long long memorySize;
+  std::vector<int> children;
+  ProcessState state = ProcessState::READY;
 };
 
 struct FileReadRequest {
@@ -24,6 +33,14 @@ struct MemoryItem {
 };
 
 using MemoryUse = std::vector<MemoryItem>;
+
+constexpr int NO_PROCESS = -1;
+
+struct Disk {
+  int number;
+  FileReadRequest currentRequest;
+  std::queue<FileReadRequest> queue; 
+};
 
 class SimOS {
   public:
@@ -42,13 +59,24 @@ class SimOS {
 
 
   private:
-    int current_process;
-    MemoryItem os_item;
-    Process os_process;
-    int numberOfDIsks;
-    unsigned long long amountofRam;
-    unsigned long long sizeOfOS;
-     
+    std::optional<int> cpuPID;
+    int nextPID;
+    std::unordered_map<int, Process> processTable; 
+    std::priority_queue<std::pair<int, int>> readyQueue;
+
+    unsigned long long totalRAM;
+    unsigned long long osSize; 
+    MemoryUse memoryUse;
+
+    std::unordered_map<int, std::vector<int>> zombieTable;
+    std::unordered_map<int, bool> waitingTable;
+
+    std::vector<Disk> disks;
+    int numberOfDisks;
+
+    void cascadeTerminate(int pid);
+    void scheduleNext();
+    
 };
 
 
